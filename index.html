@@ -180,40 +180,52 @@
    Pitch detection (YIN). Kept self-contained so it can be tested.
    ================================================================ */
 /* <yin> */
-function detectPitch(buf, fs, work) {
-  const W = 2048;
+const RMS_FLOOR = 0.0015;       // below this the room counts as silent
+function detectPitch(buf, fs, work, W) {
+  W = W || 2048;
   const tauMin = Math.max(2, Math.floor(fs / 1200));
-  const tauMax = Math.min(Math.floor(fs / 60), buf.length - W - 1);
+  const tauMax = Math.floor(fs / 60);
+  const need = W + tauMax + 1;
+  if (buf.length < need) return { freq: null, rms: 0 };
+  const b = buf.subarray(buf.length - need);          // newest samples only
   let e = 0;
-  for (let i = 0; i < W; i++) e += buf[i] * buf[i];
+  for (let i = 0; i < W; i++) e += b[i] * b[i];
   const rms = Math.sqrt(e / W);
-  if (rms < 0.008) return null;                 // too quiet
+  if (rms < RMS_FLOOR) return { freq: null, rms };
 
-  const d = work;
+  const n = tauMax + 2;
+  const d = work.subarray(0, n);      // normalised difference (for choosing the period)
+  const raw = work.subarray(n, 2 * n); // plain difference (for refining it)
   d[0] = 1;
   let run = 0;
   for (let tau = 1; tau <= tauMax; tau++) {
     let s = 0;
-    for (let i = 0; i < W; i++) { const x = buf[i] - buf[i + tau]; s += x * x; }
+    for (let i = 0; i < W; i++) { const x = b[i] - b[i + tau]; s += x * x; }
+    raw[tau] = s;
     run += s;
     d[tau] = run > 0 ? (s * tau) / run : 1;     // cumulative mean normalised difference
   }
 
-  const THRESH = 0.15;
+  // how periodic is the sound at best? (scale-free, so quiet notes work as well as loud ones)
+  let gm = 1;
+  for (let t = tauMin; t < tauMax; t++) if (d[t] < gm) gm = d[t];
+  if (gm > 0.4) return { freq: null, rms };
+
+  // shortest period that is nearly as good as the best one (avoids octave errors)
+  const cut = gm * 1.3 + 0.03;
   let tau = -1;
   for (let t = tauMin; t < tauMax; t++) {
-    if (d[t] < THRESH) {
-      while (t + 1 < tauMax && d[t + 1] < d[t]) t++;
-      tau = t;
-      break;
-    }
+    if (d[t] <= cut && d[t] <= d[t - 1] && d[t] <= d[t + 1]) { tau = t; break; }
   }
-  if (tau < 0) return null;
+  if (tau < 0) return { freq: null, rms };
 
-  const a = d[tau - 1], b = d[tau], c = d[tau + 1];
-  const den = a - 2 * b + c;
-  const shift = den !== 0 ? 0.5 * (a - c) / den : 0;
-  return { freq: fs / (tau + shift), clarity: 1 - b, rms };
+  // refine on the plain difference, which is less biased than the normalised one when the note is faint
+  let t0 = tau;
+  for (let t = Math.max(tauMin, tau - 3); t <= Math.min(tauMax - 1, tau + 3); t++) if (raw[t] < raw[t0]) t0 = t;
+  const a = raw[t0 - 1], c = raw[t0 + 1], m = raw[t0];
+  const den = a - 2 * m + c;
+  const shift = den > 0 ? Math.max(-1, Math.min(1, 0.5 * (a - c) / den)) : 0;
+  return { freq: fs / (t0 + shift), clarity: 1 - d[tau], rms };
 }
 /* </yin> */
 
@@ -420,16 +432,24 @@ const track = {
   cur: null,          // smoothed midi (float)
   note: null,         // displayed integer midi note (with hysteresis)
   pending: null,
+  start: null,
   lastGood: -1e9,
 };
 
 function onPitch(freq, now) {
   const m = 69 + 12 * Math.log2(freq / A4);
-  const stale = now - track.lastGood > 450;
+  const stale = track.cur === null || now - track.lastGood > 450;
+  if (stale) {
+    // a note after silence: wait for a second, matching reading so stray noise is ignored
+    const st = track.start;
+    if (st && now - st.t < 300 && Math.abs(m - st.m) < 0.7) {
+      track.cur = (m + st.m) / 2; track.pending = null; track.start = null;
+      track.lastGood = now; track.note = Math.round(track.cur);
+    } else track.start = { m, t: now };
+    return;
+  }
   track.lastGood = now;
-  if (track.cur === null || stale) {
-    track.cur = m; track.pending = null;
-  } else if (Math.abs(m - track.cur) < 0.8) {
+  if (Math.abs(m - track.cur) < 0.8) {
     track.cur += (m - track.cur) * 0.32;
     track.pending = null;
   } else {
@@ -438,7 +458,7 @@ function onPitch(freq, now) {
     else track.pending = { m, n: 1 };
     if (track.pending.n >= 3) { track.cur = m; track.pending = null; }
   }
-  if (track.note === null || stale || Math.abs(track.cur - track.note) > 0.58) track.note = Math.round(track.cur);
+  if (Math.abs(track.cur - track.note) > 0.58) track.note = Math.round(track.cur);
 }
 
 /* ================================================================
@@ -482,11 +502,11 @@ async function start() {
       stream.getAudioTracks().forEach(t => { t.onended = () => { running = false; showGate('The microphone was disconnected.', 'RESTART'); }; });
       if (analyser) { try { analyser.disconnect(); } catch (e) {} }
       analyser = ctx.createAnalyser();
-      analyser.fftSize = 4096;
+      analyser.fftSize = 8192;
       analyser.smoothingTimeConstant = 0;
       ctx.createMediaStreamSource(stream).connect(analyser);   // not routed to speakers
       buf = new Float32Array(analyser.fftSize);
-      work = new Float32Array(Math.floor(ctx.sampleRate / 60) + 2);
+      work = new Float32Array(2 * (Math.floor(ctx.sampleRate / 60) + 2));
     }
     if (resumed) { try { await resumed; } catch (e) {} }
     if (ctx.state !== 'running') { try { await ctx.resume(); } catch (e) {} }
@@ -535,16 +555,27 @@ document.addEventListener('visibilitychange', () => {
    Main loop
    ================================================================ */
 let lastDetect = 0;
+let lastSound = -1e9;
+const QUIET_RMS = 0.004;
+let floorRms = 0.001;
 let pos = 0, level = 0, tune = 0;
 
 function frame(t) {
   requestAnimationFrame(frame);
 
-  if (running && analyser && t - lastDetect >= 33) {
+  if (running && analyser && t - lastDetect >= 36) {
     lastDetect = t;
     analyser.getFloatTimeDomainData(buf);
-    const r = detectPitch(buf, ctx.sampleRate, work);
-    if (r) onPitch(r.freq, t);
+    const fs = ctx.sampleRate;
+    let r = detectPitch(buf, fs, work, 2048);
+    // faint or unclear sound: take a longer look, which averages out noise
+    if (r.rms >= RMS_FLOOR && (!r.freq || r.rms < QUIET_RMS)) r = detectPitch(buf, fs, work, 3584);
+    if (r.freq) onPitch(r.freq, t);
+    else {
+      // sound well above the room's background, but no clear pitch -> tell the player
+      if (r.rms > Math.max(RMS_FLOOR * 1.5, floorRms * 2.5)) lastSound = t;
+      floorRms += (r.rms - floorRms) * 0.03;
+    }
   }
 
   const live = track.cur !== null && (t - track.lastGood) < HOLD_MS;
@@ -564,7 +595,11 @@ function frame(t) {
     if (running) statusEl.classList.add('hide');
   } else {
     renderLCD(null);
-    if (running) { statusEl.classList.remove('hide'); }
+    if (running) {
+      const msg = (t - lastSound < 900) ? 'Hearing sound — play one note at a time' : 'Pluck a string';
+      if (statusEl.textContent !== msg) statusEl.textContent = msg;
+      statusEl.classList.remove('hide');
+    }
   }
 
   const target = Math.max(-LEDS_PER_SIDE, Math.min(LEDS_PER_SIDE, cents / CENTS_PER_LED));
