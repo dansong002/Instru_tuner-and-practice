@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guitar Tuner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c0e">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tuner">
+<link rel="icon" id="icon" href="data:,">
+<link rel="apple-touch-icon" id="touchicon" href="data:,">
+<style>
+  :root {
+    --bg: #0b0c0e;
+    --ink: #1b2312;
+    --ghost: rgba(27, 35, 18, .075);
+    --lcd1: #9fb083;
+    --lcd2: #8a9c6f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: #cfd3d8;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+  body { position: fixed; inset: 0; overflow: hidden; }
+
+  .app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 4vh, 38px);
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+
+  /* ---- vintage LCD ---- */
+  .bezel {
+    width: min(100%, 420px);
+    padding: 14px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #1b1d21, #0f1114);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.07),
+      inset 0 0 0 1px rgba(0,0,0,.6),
+      0 18px 40px rgba(0,0,0,.65),
+      0 0 0 1px #000;
+  }
+  .lcd {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--lcd1), var(--lcd2));
+    box-shadow:
+      inset 0 0 0 2px rgba(0,0,0,.55),
+      inset 0 7px 16px rgba(0,0,0,.35),
+      0 0 38px rgba(150,190,110,.10);
+  }
+  .lcd::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(158deg, rgba(255,255,255,.14), rgba(255,255,255,0) 38%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px);
+  }
+  #lcd { display: block; width: 100%; height: auto; }
+  #lcd .seg { fill: var(--ghost); transition: fill .09s linear; }
+  #lcd .seg.on { fill: var(--ink); }
+  #lcd .shadow { filter: drop-shadow(2px 3px 0 rgba(30, 40, 15, .22)); }
+  #lcd .ann {
+    font: 700 13px/1 "Courier New", ui-monospace, Menlo, monospace;
+    letter-spacing: .09em;
+    fill: var(--ghost);
+    transition: fill .09s linear;
+  }
+  #lcd .ann.on { fill: var(--ink); }
+  #lcd .print {
+    font: 700 11px/1 "Courier New", ui-monospace, Menlo, monospace;
+    letter-spacing: .12em;
+    fill: rgba(27, 35, 18, .62);
+  }
+  #lcd .rule { stroke: rgba(27, 35, 18, .28); stroke-width: 1.5; }
+
+  /* ---- LED arc ---- */
+  .meter { width: min(100%, 420px); }
+  #arc { display: block; width: 100%; height: auto; overflow: visible; }
+
+  /* ---- footer ---- */
+  .foot { text-align: center; min-height: 3.2em; }
+  #status {
+    font-size: 15px;
+    line-height: 1.4;
+    color: #838a93;
+    min-height: 1.4em;
+    transition: opacity .4s;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  #status.hide { opacity: 0; }
+  #status.err { color: #e0897f; }
+  .ref {
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: .18em;
+    color: #4a5057;
+    text-transform: uppercase;
+  }
+
+  /* ---- tap overlay ---- */
+  #gate {
+    position: fixed; inset: 0; z-index: 10;
+    display: grid; place-items: center;
+    background: rgba(6, 7, 9, .86);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    padding: 24px;
+    text-align: center;
+  }
+  #gate[hidden] { display: none; }
+  #gate button {
+    appearance: none;
+    border: 2px solid #38ff6a;
+    background: rgba(56, 255, 106, .08);
+    color: #b9ffcc;
+    font: 700 17px/1 system-ui, -apple-system, sans-serif;
+    letter-spacing: .16em;
+    padding: 20px 34px;
+    border-radius: 999px;
+    box-shadow: 0 0 28px rgba(56,255,106,.35), inset 0 0 18px rgba(56,255,106,.12);
+  }
+  #gate button:active { background: rgba(56, 255, 106, .2); }
+  #gate p { margin: 18px auto 0; max-width: 300px; font-size: 14px; line-height: 1.45; color: #8a9199; }
+</style>
+</head>
+<body>
+<main class="app">
+  <section class="bezel" aria-label="Tuner display">
+    <div class="lcd"><svg id="lcd" viewBox="0 0 360 300" role="img" aria-label="No note detected"></svg></div>
+  </section>
+
+  <section class="meter" aria-hidden="true">
+    <svg id="arc" viewBox="0 0 360 165"></svg>
+  </section>
+
+  <footer class="foot">
+    <div id="status" aria-live="polite">Starting…</div>
+    <div class="ref">A4 = 440 Hz</div>
+  </footer>
+</main>
+
+<div id="gate" hidden>
+  <div>
+    <button id="gateBtn" type="button">TAP TO START</button>
+    <p id="gateMsg">The tuner needs your microphone to hear the string.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================================================================
+   Pitch detection (YIN). Kept self-contained so it can be tested.
+   ================================================================ */
+/* <yin> */
+function detectPitch(buf, fs, work) {
+  const W = 2048;
+  const tauMin = Math.max(2, Math.floor(fs / 1200));
+  const tauMax = Math.min(Math.floor(fs / 60), buf.length - W - 1);
+  let e = 0;
+  for (let i = 0; i < W; i++) e += buf[i] * buf[i];
+  const rms = Math.sqrt(e / W);
+  if (rms < 0.008) return null;                 // too quiet
+
+  const d = work;
+  d[0] = 1;
+  let run = 0;
+  for (let tau = 1; tau <= tauMax; tau++) {
+    let s = 0;
+    for (let i = 0; i < W; i++) { const x = buf[i] - buf[i + tau]; s += x * x; }
+    run += s;
+    d[tau] = run > 0 ? (s * tau) / run : 1;     // cumulative mean normalised difference
+  }
+
+  const THRESH = 0.15;
+  let tau = -1;
+  for (let t = tauMin; t < tauMax; t++) {
+    if (d[t] < THRESH) {
+      while (t + 1 < tauMax && d[t + 1] < d[t]) t++;
+      tau = t;
+      break;
+    }
+  }
+  if (tau < 0) return null;
+
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1];
+  const den = a - 2 * b + c;
+  const shift = den !== 0 ? 0.5 * (a - c) / den : 0;
+  return { freq: fs / (tau + shift), clarity: 1 - b, rms };
+}
+/* </yin> */
+
+/* ================================================================
+   Constants
+   ================================================================ */
+const A4 = 440;
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const LEDS_PER_SIDE = 10;          // 21 LEDs total
+const CENTS_PER_LED = 5;           // +/-50 cents across the arc
+const IN_TUNE_CENTS = 3;
+const HOLD_MS = 650;               // keep showing the note this long after the sound stops
+
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(name, attrs, parent) {
+  const n = document.createElementNS(SVGNS, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+/* ================================================================
+   LCD (seven-segment drawing)
+   ================================================================ */
+function hbar(x1, x2, y, t) { const h = t / 2; return `${x1},${y} ${x1+h},${y-h} ${x2-h},${y-h} ${x2},${y} ${x2-h},${y+h} ${x1+h},${y+h}`; }
+function vbar(x, y1, y2, t) { const h = t / 2; return `${x},${y1} ${x+h},${y1+h} ${x+h},${y2-h} ${x},${y2} ${x-h},${y2-h} ${x-h},${y1+h}`; }
+const T = 9;
+const GEO = {
+  a: hbar(9, 41, 6, T),
+  b: vbar(44, 9, 43, T),
+  c: vbar(44, 49, 83, T),
+  d: hbar(9, 41, 86, T),
+  e: vbar(6, 49, 83, T),
+  f: vbar(6, 9, 43, T),
+  g: hbar(9, 41, 46, T),
+};
+const PLUS_V = vbar(25, 29, 63, T);
+const CHARS = {
+  '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg',
+  '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg',
+  'A': 'abcefg', 'B': 'cdefg', 'C': 'adef', 'D': 'bcdeg', 'E': 'adefg',
+  'F': 'aefg', 'G': 'acdef', '-': 'g', ' ': '',
+};
+
+function buildDigit(parent, x, y, s, opts) {
+  opts = opts || {};
+  const g = el('g', { transform: `translate(${x} ${y}) scale(${s}) skewX(-6)` }, parent);
+  const segs = {};
+  for (const k in GEO) segs[k] = el('polygon', { points: GEO[k], class: 'seg' }, g);
+  if (opts.sign) segs.p = el('polygon', { points: PLUS_V, class: 'seg' }, g);
+  if (opts.dp) segs.dp = el('rect', { x: 49, y: 79, width: 8, height: 8, class: 'seg' }, g);
+  return segs;
+}
+function setDigit(segs, ch, dp) {
+  const on = CHARS[ch] || '';
+  for (const k of 'abcdefg') segs[k].classList.toggle('on', on.indexOf(k) >= 0);
+  if (segs.p) segs.p.classList.toggle('on', ch === '+');
+  if (ch === '+') segs.g.classList.add('on');
+  if (segs.dp) segs.dp.classList.toggle('on', !!dp);
+}
+
+const lcd = $('lcd');
+const ui = {};
+(function buildLCD() {
+  // annunciators
+  ui.annFlat  = el('text', { x: 22,  y: 30, class: 'ann' }, lcd);  ui.annFlat.textContent  = '♭ FLAT';
+  ui.annTune  = el('text', { x: 180, y: 30, class: 'ann', 'text-anchor': 'middle' }, lcd); ui.annTune.textContent = 'IN TUNE';
+  ui.annSharp = el('text', { x: 338, y: 30, class: 'ann', 'text-anchor': 'end' }, lcd);    ui.annSharp.textContent = 'SHARP ♯';
+
+  // big note letter
+  const big = el('g', { class: 'shadow' }, lcd);
+  ui.letter = buildDigit(big, 78, 52, 1.9);
+
+  // sharp sign
+  const sg = el('g', { class: 'shadow', transform: 'translate(212 58) scale(1.0)' }, lcd);
+  ui.sharp = [
+    el('polygon', { points: '18,2 26,2 22,70 14,70', class: 'seg' }, sg),
+    el('polygon', { points: '42,2 50,2 46,70 38,70', class: 'seg' }, sg),
+    el('polygon', { points: '4,31 58,19 58,28 4,40', class: 'seg' }, sg),
+    el('polygon', { points: '4,53 58,41 58,50 4,62', class: 'seg' }, sg),
+  ];
+
+  // octave
+  const og = el('g', { class: 'shadow' }, lcd);
+  ui.octave = buildDigit(og, 228, 142, 0.78);
+
+  // divider
+  el('line', { x1: 22, y1: 238, x2: 338, y2: 238, class: 'rule' }, lcd);
+
+  // Hz readout: 5 cells
+  const hg = el('g', { class: 'shadow' }, lcd);
+  ui.hz = [];
+  for (let i = 0; i < 5; i++) ui.hz.push(buildDigit(hg, 20 + i * 27, 250, 0.4, { dp: true }));
+  const hzL = el('text', { x: 20 + 5 * 27 + 4, y: 286, class: 'print' }, lcd); hzL.textContent = 'Hz';
+
+  // cents readout: sign + 2 digits
+  const cg = el('g', { class: 'shadow' }, lcd);
+  ui.cents = [buildDigit(cg, 222, 250, 0.4, { sign: true }), buildDigit(cg, 249, 250, 0.4), buildDigit(cg, 276, 250, 0.4)];
+  const cL = el('text', { x: 305, y: 286, class: 'print' }, lcd); cL.textContent = 'CENT';
+})();
+
+let lcdKey = '';
+function renderLCD(s) {
+  // s: null (idle) or {letter, sharp, octave, hz, cents}
+  let key, letter = '-', sharp = false, oct = ' ', hzCells, centCells;
+  const blank5 = [{ ch: ' ' }, { ch: ' ' }, { ch: ' ' }, { ch: ' ' }, { ch: ' ' }];
+  let flat = false, tune = false, shp = false, label = 'No note detected';
+
+  if (!s) {
+    hzCells = blank5; centCells = [' ', ' ', ' '];
+  } else {
+    letter = s.letter; sharp = s.sharp; oct = String(Math.max(0, Math.min(9, s.octave)));
+    const txt = s.hz.toFixed(1);
+    const parts = [];
+    for (const c of txt) {
+      if (c === '.') { if (parts.length) parts[parts.length - 1].dp = true; }
+      else parts.push({ ch: c, dp: false });
+    }
+    hzCells = blank5.slice(0, Math.max(0, 5 - parts.length)).concat(parts).slice(-5);
+    const c = Math.round(s.cents);
+    const ab = Math.min(99, Math.abs(c));
+    centCells = [c > 0 ? '+' : c < 0 ? '-' : ' ', String(Math.floor(ab / 10)), String(ab % 10)];
+    tune = Math.abs(s.cents) <= IN_TUNE_CENTS;
+    flat = !tune && s.cents < 0;
+    shp = !tune && s.cents > 0;
+    label = `${s.letter}${s.sharp ? ' sharp' : ''}${s.octave}, ${tune ? 'in tune' : Math.abs(c) + ' cents ' + (s.cents < 0 ? 'flat' : 'sharp')}`;
+  }
+  key = [letter, sharp, oct, hzCells.map(c => c.ch + (c.dp ? '.' : '')).join(''), centCells.join(''), flat, tune, shp].join('|');
+  if (key === lcdKey) return;
+  lcdKey = key;
+
+  setDigit(ui.letter, letter);
+  ui.sharp.forEach(p => p.classList.toggle('on', sharp));
+  setDigit(ui.octave, s ? oct : ' ');
+  hzCells.forEach((c, i) => setDigit(ui.hz[i], c.ch, c.dp));
+  centCells.forEach((c, i) => setDigit(ui.cents[i], c));
+  ui.annFlat.classList.toggle('on', flat);
+  ui.annTune.classList.toggle('on', tune);
+  ui.annSharp.classList.toggle('on', shp);
+  lcd.setAttribute('aria-label', label);
+}
+
+/* ================================================================
+   LED arc
+   ================================================================ */
+const arc = $('arc');
+const leds = [];
+const COLORS = { g: '#38ff6a', y: '#ffd21f', r: '#ff3b30' };
+function ledColor(i) { const a = Math.abs(i); return a <= 1 ? 'g' : a <= 6 ? 'y' : 'r'; }
+
+(function buildArc() {
+  const defs = el('defs', {}, arc);
+  for (const k in COLORS) {
+    const gr = el('radialGradient', { id: 'glow-' + k }, defs);
+    el('stop', { offset: '0', 'stop-color': COLORS[k], 'stop-opacity': '.85' }, gr);
+    el('stop', { offset: '.45', 'stop-color': COLORS[k], 'stop-opacity': '.30' }, gr);
+    el('stop', { offset: '1', 'stop-color': COLORS[k], 'stop-opacity': '0' }, gr);
+  }
+  const R = 170, cx = 180, cy = 195, span = 64 * Math.PI / 180;
+  const pos = (i) => { const a = (i / LEDS_PER_SIDE) * span; return [cx + R * Math.sin(a), cy - R * Math.cos(a)]; };
+  const [x0, y0] = pos(-LEDS_PER_SIDE), [x1, y1] = pos(LEDS_PER_SIDE);
+
+  // recessed track
+  el('path', { d: `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1}`, fill: 'none', stroke: '#0e1013', 'stroke-width': 30, 'stroke-linecap': 'round' }, arc);
+  el('path', { d: `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1}`, fill: 'none', stroke: '#1a1d21', 'stroke-width': 30, 'stroke-linecap': 'round', opacity: .55, transform: 'translate(0 -1)' }, arc);
+
+  // centre tick
+  el('polygon', { points: '174,2 186,2 180,10', fill: '#2f6b41' }, arc);
+
+  for (let i = -LEDS_PER_SIDE; i <= LEDS_PER_SIDE; i++) {
+    const [x, y] = pos(i);
+    const k = ledColor(i);
+    const r = i === 0 ? 8.6 : 7.4;
+    const g = el('g', { transform: `translate(${x.toFixed(2)} ${y.toFixed(2)})` }, arc);
+    const glow = el('circle', { r: 24, fill: `url(#glow-${k})`, opacity: 0 }, g);
+    el('circle', { r: r + 2.6, fill: '#08090b', stroke: '#2b2f34', 'stroke-width': 1 }, g);
+    const body = el('circle', { r, fill: COLORS[k], opacity: .13 }, g);
+    const spec = el('circle', { r: r * .32, cx: -r * .32, cy: -r * .34, fill: '#fff', opacity: 0 }, g);
+    leds.push({ i, glow, body, spec });
+  }
+
+  const lf = el('text', { x: x0 - 4, y: y0 + 46, fill: '#5a6068', 'font-size': 24, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif' }, arc);
+  lf.textContent = '♭';
+  const ls = el('text', { x: x1 + 4, y: y1 + 46, fill: '#5a6068', 'font-size': 24, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif' }, arc);
+  ls.textContent = '♯';
+})();
+
+function renderLEDs(pos, level, tune) {
+  for (const L of leds) {
+    let b = Math.max(0, 1 - Math.abs(pos - L.i) / 1.3);
+    b = Math.pow(b, 1.15) * level;
+    if (Math.abs(L.i) <= 1) b = Math.max(b, tune * level);
+    L.body.setAttribute('opacity', (0.13 + 0.87 * b).toFixed(3));
+    L.glow.setAttribute('opacity', (b * (L.i === 0 ? 1 : .9)).toFixed(3));
+    L.spec.setAttribute('opacity', (b * 0.45).toFixed(3));
+  }
+}
+
+/* ================================================================
+   Tracking / smoothing
+   ================================================================ */
+const track = {
+  cur: null,          // smoothed midi (float)
+  note: null,         // displayed integer midi note (with hysteresis)
+  pending: null,
+  lastGood: -1e9,
+};
+
+function onPitch(freq, now) {
+  const m = 69 + 12 * Math.log2(freq / A4);
+  const stale = now - track.lastGood > 450;
+  track.lastGood = now;
+  if (track.cur === null || stale) {
+    track.cur = m; track.pending = null;
+  } else if (Math.abs(m - track.cur) < 0.8) {
+    track.cur += (m - track.cur) * 0.32;
+    track.pending = null;
+  } else {
+    // big jump (new string / octave glitch): require it to repeat
+    if (track.pending && Math.abs(m - track.pending.m) < 0.5) { track.pending.n++; track.pending.m = m; }
+    else track.pending = { m, n: 1 };
+    if (track.pending.n >= 3) { track.cur = m; track.pending = null; }
+  }
+  if (track.note === null || stale || Math.abs(track.cur - track.note) > 0.58) track.note = Math.round(track.cur);
+}
+
+/* ================================================================
+   Audio
+   ================================================================ */
+let ctx = null, stream = null, analyser = null, buf = null, work = null;
+let running = false;
+let wake = null;
+
+const statusEl = $('status');
+function setStatus(msg, cls) {
+  statusEl.textContent = msg;
+  statusEl.className = cls || '';
+}
+const gate = $('gate');
+function showGate(msg, label) {
+  $('gateMsg').textContent = msg;
+  $('gateBtn').textContent = label || 'TAP TO START';
+  gate.hidden = false;
+}
+function hideGate() { gate.hidden = true; }
+
+async function start() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('Microphone access needs this page to be opened from a secure (https) address.', 'err');
+      showGate('Microphone access needs this page to be opened from a secure (https) address.', 'RETRY');
+      return;
+    }
+    // Create + resume the context first, inside the tap, so iOS lets it run.
+    if (!ctx || ctx.state === 'closed') ctx = new AC({ latencyHint: 'interactive' });
+    const resumed = ctx.resume ? ctx.resume() : null;
+
+    if (!stream || !stream.active || stream.getAudioTracks().every(t => t.readyState === 'ended')) {
+      setStatus('Allow microphone access to start…');
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        video: false,
+      });
+      stream.getAudioTracks().forEach(t => { t.onended = () => { running = false; showGate('The microphone was disconnected.', 'RESTART'); }; });
+      if (analyser) { try { analyser.disconnect(); } catch (e) {} }
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
+      ctx.createMediaStreamSource(stream).connect(analyser);   // not routed to speakers
+      buf = new Float32Array(analyser.fftSize);
+      work = new Float32Array(Math.floor(ctx.sampleRate / 60) + 2);
+    }
+    if (resumed) { try { await resumed; } catch (e) {} }
+    if (ctx.state !== 'running') { try { await ctx.resume(); } catch (e) {} }
+
+    if (ctx.state === 'running') {
+      running = true;
+      hideGate();
+      setStatus('Pluck a string');
+      lockScreen();
+    } else {
+      showGate('Tap to start listening.');
+    }
+  } catch (err) {
+    running = false;
+    const name = err && err.name;
+    if (name === 'NotAllowedError' || name === 'SecurityError') {
+      const m = 'Microphone is blocked. Allow microphone access for this page in your browser or phone settings, then tap to try again.';
+      setStatus('Microphone blocked', 'err'); showGate(m, 'TRY AGAIN');
+    } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+      setStatus('No microphone found', 'err'); showGate('No microphone was found on this device.', 'TRY AGAIN');
+    } else {
+      setStatus('Could not start the microphone', 'err'); showGate('Something went wrong starting the microphone.', 'TRY AGAIN');
+    }
+  }
+}
+
+async function lockScreen() {
+  try {
+    if ('wakeLock' in navigator && !wake) {
+      wake = await navigator.wakeLock.request('screen');
+      wake.addEventListener('release', () => { wake = null; });
+    }
+  } catch (e) { wake = null; }
+}
+
+$('gateBtn').addEventListener('click', start);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  lockScreen();
+  if (ctx && ctx.state !== 'running' && stream) {
+    ctx.resume().then(() => { if (ctx.state === 'running') { running = true; hideGate(); } else showGate('Tap to keep listening.'); }).catch(() => showGate('Tap to keep listening.'));
+  }
+});
+
+/* ================================================================
+   Main loop
+   ================================================================ */
+let lastDetect = 0;
+let pos = 0, level = 0, tune = 0;
+
+function frame(t) {
+  requestAnimationFrame(frame);
+
+  if (running && analyser && t - lastDetect >= 33) {
+    lastDetect = t;
+    analyser.getFloatTimeDomainData(buf);
+    const r = detectPitch(buf, ctx.sampleRate, work);
+    if (r) onPitch(r.freq, t);
+  }
+
+  const live = track.cur !== null && (t - track.lastGood) < HOLD_MS;
+  let cents = 0;
+  if (live) {
+    cents = (track.cur - track.note) * 100;
+    const midi = track.note;
+    const pc = ((midi % 12) + 12) % 12;
+    const name = NAMES[pc];
+    renderLCD({
+      letter: name[0],
+      sharp: name.length > 1,
+      octave: Math.floor(midi / 12) - 1,
+      hz: A4 * Math.pow(2, (track.cur - 69) / 12),
+      cents,
+    });
+    if (running) statusEl.classList.add('hide');
+  } else {
+    renderLCD(null);
+    if (running) { statusEl.classList.remove('hide'); }
+  }
+
+  const target = Math.max(-LEDS_PER_SIDE, Math.min(LEDS_PER_SIDE, cents / CENTS_PER_LED));
+  pos += (target - pos) * 0.3;
+  level += ((live ? 1 : 0) - level) * (live ? 0.4 : 0.08);
+  if (level < 0.004) level = 0;
+  tune += (((live && Math.abs(cents) <= IN_TUNE_CENTS) ? 1 : 0) - tune) * 0.25;
+  renderLEDs(pos, level, tune);
+}
+
+/* ================================================================
+   Home-screen icon + manifest (generated, so the file stays single)
+   ================================================================ */
+function drawIcon(size) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0b0c0e'; g.fillRect(0, 0, size, size);
+
+  const px = (v) => v * size;
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  // bezel + lcd
+  g.fillStyle = '#1b1d21'; rr(px(.13), px(.13), px(.74), px(.44), px(.06)); g.fill();
+  const lg = g.createLinearGradient(0, px(.17), 0, px(.53)); lg.addColorStop(0, '#9fb083'); lg.addColorStop(1, '#8a9c6f');
+  g.fillStyle = lg; rr(px(.16), px(.16), px(.68), px(.38), px(.03)); g.fill();
+  g.fillStyle = '#1b2312'; g.font = `700 ${px(.3)}px "Courier New", monospace`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('E', px(.5), px(.37));
+  // led arc
+  const n = 5, R = px(.37), cx = px(.5), cy = px(.98);
+  for (let i = -n; i <= n; i++) {
+    const a = (i / n) * 64 * Math.PI / 180;
+    const x = cx + R * Math.sin(a), y = cy - R * Math.cos(a);
+    const k = Math.abs(i) <= 1 ? '#38ff6a' : Math.abs(i) <= 3 ? '#ffd21f' : '#ff3b30';
+    g.globalAlpha = Math.abs(i) <= 1 ? 1 : 0.4;
+    g.fillStyle = k; g.beginPath(); g.arc(x, y, px(i === 0 ? .036 : .03), 0, Math.PI * 2); g.fill();
+  }
+  g.globalAlpha = 1;
+  return c;
+}
+(function setupInstallBits() {
+  try {
+    $('touchicon').href = drawIcon(180).toDataURL('image/png');
+    $('icon').href = drawIcon(64).toDataURL('image/png');
+    const manifest = {
+      name: 'Guitar Tuner', short_name: 'Tuner',
+      start_url: location.href.split('#')[0], scope: location.href.split('#')[0].replace(/[^/]*$/, ''),
+      display: 'standalone', orientation: 'portrait',
+      background_color: '#0b0c0e', theme_color: '#0b0c0e',
+      icons: [
+        { src: drawIcon(192).toDataURL('image/png'), sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+        { src: drawIcon(512).toDataURL('image/png'), sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    };
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+    document.head.appendChild(link);
+  } catch (e) { /* purely cosmetic */ }
+})();
+
+/* ================================================================ */
+renderLCD(null);
+renderLEDs(0, 0, 0);
+requestAnimationFrame(frame);
+start();
+
+})();
+</script>
+</body>
+</html>
