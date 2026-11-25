@@ -100,7 +100,7 @@
   .bezel {
     position: relative;
     width: min(100%, 400px, 50vh);
-    padding: 19px 21px;
+    padding: 13px 15px;
     border-radius: 13px;
     background:
       radial-gradient(120% 140% at 50% 50%, transparent 55%, rgba(70,52,28,.32)),
@@ -117,14 +117,14 @@
       0 10px 18px rgba(0,0,0,.55),
       0 22px 36px rgba(0,0,0,.35);
   }
-  .bezel::before {            /* bevel down into the window */
-    content: "";
-    position: absolute;
-    inset: 13px 15px;
-    border-radius: 8px;
+  .win {                     /* bevel down into each window */
+    position: relative;
+    padding: 6px;
+    border-radius: 9px;
     background: linear-gradient(180deg, #4a4741, #d8d4cb);
     box-shadow: 0 0 0 1px rgba(0,0,0,.35);
   }
+  .win + .win { margin-top: 12px; }
   .screw {
     position: absolute;
     width: 9px; height: 9px;
@@ -193,38 +193,32 @@
   .meter { width: min(100%, 400px, 52vh); }
   #arc { display: block; width: 100%; height: auto; overflow: visible; }
 
-  /* ---- footer ---- */
-  .foot { text-align: center; min-height: 3.2em; }
-  #status {
-    font-size: 15px;
-    line-height: 1.4;
-    color: #d7c8a6;
-    text-shadow: 0 1px 0 rgba(0,0,0,.7);
-    min-height: 1.4em;
-    transition: opacity .4s;
-    max-width: 320px;
-    margin: 0 auto;
-  }
-  #status.hide { opacity: 0; }
-  #status.err { color: #e0897f; }
-  .ref {
+  /* ---- message strip (5x7 dot matrix) ---- */
+  #msg { display: block; width: 100%; height: auto; }
+  #msg .dot { fill: rgba(27, 35, 18, .085); }
+  #msg .dot.on { fill: var(--ink); }
+  #msg .ink { filter: drop-shadow(.22px .3px 0 rgba(30, 40, 15, .25)); }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---- reference pitch toggle ---- */
+  .plate {
     position: relative;
-    display: inline-block;
-    margin-top: 10px;
-    padding: 5px 22px 4px;
-    font: 700 10.5px/1.2 "Courier New", ui-monospace, Menlo, monospace;
-    letter-spacing: .2em;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 22px;
+    border-radius: 4px;
+    font: 700 12px/1 "Courier New", ui-monospace, Menlo, monospace;
+    letter-spacing: .14em;
     color: #2b2822;
     text-shadow: 0 1px 0 rgba(255,255,255,.45);
-    border-radius: 3px;
     background:
       radial-gradient(140% 160% at 50% 50%, transparent 55%, rgba(80,60,30,.25)),
       repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.04) 1px 2px),
       linear-gradient(175deg, #e4e0d6, #a7a399 55%, #c9c5bb);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.5);
   }
-  .ref::before, .ref::after {
+  .plate::before, .plate::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -234,8 +228,55 @@
     background: radial-gradient(circle at 35% 30%, #fffdf6, #9a968e 60%, #57544e);
     box-shadow: 0 .5px 0 rgba(0,0,0,.5);
   }
-  .ref::before { left: 7px; }
-  .ref::after { right: 7px; }
+  .plate::before { left: 7px; }
+  .plate::after { right: 7px; }
+  .plate .lbl { padding-top: 1px; }
+  .toggle {
+    position: relative;
+    width: 62px; height: 44px;
+    padding: 0; margin: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .toggle .washer, .toggle .nut, .toggle .bat, .toggle .stem {
+    position: absolute; left: 50%; top: 50%; pointer-events: none;
+  }
+  .toggle .washer {
+    width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #3a3732 0 34%, transparent 35%),
+                conic-gradient(from 200deg, #f2eee4, #8d887f, #d9d4c9, #6f6a62, #ece7dc, #9a958c, #f2eee4);
+    box-shadow: 0 1px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.45), inset 0 0 0 .5px rgba(0,0,0,.5);
+  }
+  .toggle .nut {
+    width: 17px; height: 17px; margin: -8.5px 0 0 -8.5px;
+    clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+    background: linear-gradient(150deg, #fbf8f0 0%, #c5c0b5 35%, #7a756c 60%, #d6d1c6 80%, #8f8a81 100%);
+  }
+  .toggle .stem {
+    width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #fff, #9c978e 60%, #4d4a45);
+  }
+  .toggle .bat {                       /* chrome bat handle, pointing at the selected side */
+    width: 26px; height: 10px; margin: -5px 0 0 0;
+    transform-origin: 0 50%;
+    transform: scaleX(-1);
+    transition: transform .09s cubic-bezier(.5, 0, .7, 1.4);
+    filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.55));
+  }
+  .toggle .bat::before {
+    content: ""; position: absolute; left: 0; top: 1px; width: 21px; height: 8px;
+    clip-path: polygon(0 22%, 100% 4%, 100% 96%, 0 78%);
+    background: linear-gradient(180deg, #ffffff 0%, #d1ccc2 30%, #77726a 70%, #a8a399 100%);
+  }
+  .toggle .bat::after {
+    content: ""; position: absolute; left: 17px; top: 0; width: 9px; height: 10px; border-radius: 45% 50% 50% 45%;
+    background: radial-gradient(circle at 38% 32%, #fff 0, #d6d1c6 35%, #77726a 80%, #5a564f 100%);
+  }
+  .toggle[aria-checked="true"] .bat { transform: scaleX(1); }
+  .toggle:focus { outline: none; }
+  .toggle:focus-visible .washer { box-shadow: 0 0 0 2px rgba(215,200,166,.8); }
 
   /* ---- tap overlay ---- */
   #gate {
@@ -269,17 +310,23 @@
 <main class="app">
   <section class="bezel" aria-label="Tuner display">
     <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
-    <div class="lcd"><svg id="lcd" viewBox="0 0 360 300" role="img" aria-label="No note detected"></svg></div>
+    <div class="win"><div class="lcd"><svg id="lcd" viewBox="0 0 360 300" role="img" aria-label="No note detected"></svg></div></div>
+    <div class="win"><div class="lcd"><svg id="msg" viewBox="0 0 99 11" aria-hidden="true"></svg></div></div>
   </section>
 
   <section class="meter" aria-hidden="true">
     <svg id="arc" viewBox="0 0 360 165"></svg>
   </section>
 
-  <footer class="foot">
-    <div id="status" aria-live="polite">Starting…</div>
-    <div class="ref">A4 = 440 Hz</div>
-  </footer>
+  <div id="status" aria-live="polite">Starting…</div>
+
+  <div class="plate" role="group" aria-label="Reference pitch">
+    <span class="lbl" aria-hidden="true">440</span>
+    <button id="refSwitch" class="toggle" type="button" role="switch" aria-checked="false" aria-label="Reference A 432 Hz (off means 440 Hz)">
+      <i class="washer"></i><i class="nut"></i><i class="stem"></i><i class="bat"></i>
+    </button>
+    <span class="lbl" aria-hidden="true">432</span>
+  </div>
 </main>
 </div>
 
@@ -350,7 +397,7 @@ function detectPitch(buf, fs, work, W) {
 /* ================================================================
    Constants
    ================================================================ */
-const A4 = 440;
+let A4 = 440;                      // reference, set by the 440 / 432 toggle
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const LEDS_PER_SIDE = 10;          // 21 LEDs total
 const CENTS_PER_LED = 5;           // +/-50 cents across the arc
@@ -752,7 +799,85 @@ function frame(t) {
   if (level < 0.004) level = 0;
   tune += (((live && Math.abs(cents) <= IN_TUNE_CENTS) ? 1 : 0) - tune) * 0.25;
   renderLEDs(pos, level, tune);
+  renderStrip();
 }
+
+/* ================================================================
+   Message strip: 16-character 5x7 dot matrix showing the status line
+   ================================================================ */
+const FONT = {   // 5 columns per glyph, bit 0 = top row
+  ' ': [0,0,0,0,0], '!': [0,0,0x5F,0,0], '-': [8,8,8,8,8], '.': [0,0x60,0x60,0,0], ':': [0,0x36,0x36,0,0],
+  '0': [0x3E,0x51,0x49,0x45,0x3E], '1': [0,0x42,0x7F,0x40,0], '2': [0x42,0x61,0x51,0x49,0x46], '3': [0x21,0x41,0x45,0x4B,0x31],
+  '4': [0x18,0x14,0x12,0x7F,0x10], '5': [0x27,0x45,0x45,0x45,0x39], '6': [0x3C,0x4A,0x49,0x49,0x30], '7': [0x01,0x71,0x09,0x05,0x03],
+  '8': [0x36,0x49,0x49,0x49,0x36], '9': [0x06,0x49,0x49,0x29,0x1E],
+  A: [0x7E,0x11,0x11,0x11,0x7E], B: [0x7F,0x49,0x49,0x49,0x36], C: [0x3E,0x41,0x41,0x41,0x22], D: [0x7F,0x41,0x41,0x22,0x1C],
+  E: [0x7F,0x49,0x49,0x49,0x41], F: [0x7F,0x09,0x09,0x09,0x01], G: [0x3E,0x41,0x49,0x49,0x7A], H: [0x7F,0x08,0x08,0x08,0x7F],
+  I: [0,0x41,0x7F,0x41,0], J: [0x20,0x40,0x41,0x3F,0x01], K: [0x7F,0x08,0x14,0x22,0x41], L: [0x7F,0x40,0x40,0x40,0x40],
+  M: [0x7F,0x02,0x0C,0x02,0x7F], N: [0x7F,0x04,0x08,0x10,0x7F], O: [0x3E,0x41,0x41,0x41,0x3E], P: [0x7F,0x09,0x09,0x09,0x06],
+  Q: [0x3E,0x41,0x51,0x21,0x5E], R: [0x7F,0x09,0x19,0x29,0x46], S: [0x46,0x49,0x49,0x49,0x31], T: [0x01,0x01,0x7F,0x01,0x01],
+  U: [0x3F,0x40,0x40,0x40,0x3F], V: [0x1F,0x20,0x40,0x20,0x1F], W: [0x3F,0x40,0x38,0x40,0x3F], X: [0x63,0x14,0x08,0x14,0x63],
+  Y: [0x07,0x08,0x70,0x08,0x07], Z: [0x61,0x51,0x49,0x45,0x43],
+};
+const STRIP_CHARS = 16;
+const stripDots = [];
+(function buildStrip() {
+  const svg = $('msg');
+  const back = el('g', {}, svg), ink = el('g', { class: 'ink' }, svg);
+  for (let c = 0; c < STRIP_CHARS; c++) {
+    const col = [];
+    for (let x = 0; x < 5; x++) {
+      const rows = [];
+      for (let y = 0; y < 7; y++) {
+        const a = { x: 2 + c * 6 + x + .09, y: 2 + y + .09, width: .82, height: .82, rx: .12 };
+        el('rect', Object.assign({ class: 'dot' }, a), back);                 // unlit pixel
+        rows.push(el('rect', Object.assign({ class: 'dot on', visibility: 'hidden' }, a), ink));
+      }
+      col.push(rows);
+    }
+    stripDots.push(col);
+  }
+})();
+function shortStatus(t) {
+  const s = (t || '').toLowerCase();
+  if (s.startsWith('starting')) return 'STARTING';
+  if (s.startsWith('pluck')) return 'PLUCK A STRING';
+  if (s.startsWith('hearing')) return 'PLAY ONE NOTE';
+  if (s.startsWith('allow')) return 'ALLOW MIC';
+  if (s.includes('https') || s.includes('secure')) return 'NEEDS HTTPS';
+  if (s.includes('blocked')) return 'MIC BLOCKED';
+  if (s.includes('no microphone')) return 'NO MICROPHONE';
+  if (s.includes('could not')) return 'MIC ERROR';
+  return s.toUpperCase().replace(/[^A-Z0-9 .:!-]/g, ' ').trim().slice(0, STRIP_CHARS);
+}
+let stripKey = null;
+function renderStrip() {
+  const text = statusEl.classList.contains('hide') ? '' : shortStatus(statusEl.textContent);
+  if (text === stripKey) return;
+  stripKey = text;
+  const padL = Math.floor((STRIP_CHARS - text.length) / 2);
+  for (let c = 0; c < STRIP_CHARS; c++) {
+    const g = FONT[text[c - padL]] || FONT[' '];
+    for (let x = 0; x < 5; x++) for (let y = 0; y < 7; y++)
+      stripDots[c][x][y].setAttribute('visibility', (g[x] >> y) & 1 ? 'visible' : 'hidden');
+  }
+}
+
+/* ================================================================
+   440 / 432 reference toggle
+   ================================================================ */
+const refSwitch = $('refSwitch');
+function setReference(hz, save) {
+  if (hz === A4) return;
+  const shift = 12 * Math.log2(A4 / hz);        // keep the note being held continuous
+  if (track.cur !== null) { track.cur += shift; track.note = Math.round(track.cur); }
+  if (track.pending) track.pending.m += shift;
+  if (track.start) track.start.m += shift;
+  A4 = hz;
+  refSwitch.setAttribute('aria-checked', hz === 432 ? 'true' : 'false');
+  if (save) { try { localStorage.setItem('tuner.ref', String(hz)); } catch (e) {} }
+}
+refSwitch.addEventListener('click', () => setReference(A4 === 440 ? 432 : 440, true));
+try { if (localStorage.getItem('tuner.ref') === '432') setReference(432, false); } catch (e) {}
 
 /* ================================================================
    Home-screen icon + manifest (generated, so the file stays single)
