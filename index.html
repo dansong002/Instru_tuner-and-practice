@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Guitar Tuner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0b0c0e">
+<meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,11 @@
 <link rel="apple-touch-icon" id="touchicon" href="data:,">
 <style>
   :root {
-    --bg: #0b0c0e;
+    --bg: #000;
+    --tolex-base: #3b281c;
+    --pt: max(10px, env(safe-area-inset-top));
+    --px: max(9px, env(safe-area-inset-left));
+    --pb: calc(max(8px, env(safe-area-inset-bottom)) + 36px);
     --ink: #1b2312;
     --ghost: rgba(27, 35, 18, .075);
     --lcd1: #9fb083;
@@ -35,41 +39,126 @@
   }
   body { position: fixed; inset: 0; overflow: hidden; }
 
+  /* ---- pedal body ---- */
+  .side {
+    position: absolute;
+    left: calc(var(--px) - 2px);
+    right: calc(var(--px) - 2px);
+    top: calc(var(--pt) + 18px);
+    bottom: 0;
+    border-radius: 22px 22px 0 0;
+    background-color: #1a120c;
+    background-image:
+      linear-gradient(180deg,
+        rgba(0,0,0,.62) 0,
+        rgba(0,0,0,.62) calc(100% - var(--pb) - 6px),
+        rgba(0,0,0,.50) calc(100% - var(--pb) + 2px),
+        rgba(0,0,0,.80) calc(100% - var(--pb) * .45),
+        #000 calc(100% - 4px)),
+      linear-gradient(90deg, rgba(0,0,0,.55), transparent 9%, transparent 91%, rgba(0,0,0,.55)),
+      var(--tolex, none);
+    background-size: auto, auto, 128px 128px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.6);
+  }
+  .face {
+    position: absolute;
+    top: var(--pt);
+    left: var(--px);
+    right: var(--px);
+    bottom: var(--pb);
+    border-radius: 24px;
+    overflow: hidden;
+    background-color: var(--tolex-base);
+    background-image:
+      radial-gradient(130% 85% at 50% 38%, rgba(255,232,205,.07), transparent 60%),
+      linear-gradient(180deg, rgba(255,235,210,.05), transparent 30%, transparent 70%, rgba(0,0,0,.22)),
+      var(--tolex, none);
+    background-size: auto, auto, 128px 128px;
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,236,212,.20),
+      inset 0 5px 7px -3px rgba(255,226,196,.10),
+      inset 0 -2px 0 rgba(0,0,0,.55),
+      inset 0 -16px 16px -8px rgba(0,0,0,.65),
+      inset 11px 0 13px -9px rgba(0,0,0,.55),
+      inset -11px 0 13px -9px rgba(0,0,0,.55),
+      0 0 0 1px rgba(0,0,0,.75);
+  }
+  #wear { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
   .app {
+    position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: clamp(14px, 4vh, 38px);
-    padding:
-      max(16px, env(safe-area-inset-top))
-      max(16px, env(safe-area-inset-right))
-      max(16px, env(safe-area-inset-bottom))
-      max(16px, env(safe-area-inset-left));
+    gap: clamp(14px, 3.6vh, 34px);
+    padding: 18px 16px 16px;
   }
 
   /* ---- vintage LCD ---- */
   .bezel {
-    width: min(100%, 420px);
-    padding: 14px;
-    border-radius: 22px;
-    background: linear-gradient(180deg, #1b1d21, #0f1114);
+    position: relative;
+    width: min(100%, 400px, 50vh);
+    padding: 19px 21px;
+    border-radius: 13px;
+    background:
+      radial-gradient(120% 140% at 50% 50%, transparent 55%, rgba(70,52,28,.32)),
+      linear-gradient(rgba(150,118,70,.13), rgba(150,118,70,.13)),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, rgba(0,0,0,.035) 1px 2px, transparent 2px 3px),
+      linear-gradient(162deg, #efece4 0%, #a8a49c 16%, #f6f3eb 30%, #8f8b84 50%, #cfcbc2 68%, #77736c 86%, #a9a59d 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.07),
-      inset 0 0 0 1px rgba(0,0,0,.6),
-      0 18px 40px rgba(0,0,0,.65),
-      0 0 0 1px #000;
+      inset 0 1px 0 rgba(255,255,255,.75),
+      inset 0 -1.5px 0 rgba(0,0,0,.45),
+      inset 1px 0 0 rgba(255,255,255,.35),
+      inset -1px 0 0 rgba(0,0,0,.3),
+      0 0 0 1px rgba(0,0,0,.55),
+      0 3px 2px rgba(0,0,0,.55),
+      0 10px 18px rgba(0,0,0,.55),
+      0 22px 36px rgba(0,0,0,.35);
   }
+  .bezel::before {            /* bevel down into the window */
+    content: "";
+    position: absolute;
+    inset: 13px 15px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #4a4741, #d8d4cb);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+  }
+  .screw {
+    position: absolute;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fbf9f3 0, #bdb9b0 38%, #6d6a64 80%, #4a4843 100%);
+    box-shadow: 0 1px 1px rgba(0,0,0,.6), inset 0 0 0 .5px rgba(0,0,0,.45);
+  }
+  .screw::before, .screw::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 6px; height: 1.3px;
+    margin: -.65px 0 0 -3px;
+    background: rgba(40,36,30,.85);
+    box-shadow: 0 .6px 0 rgba(255,255,255,.35);
+    border-radius: 1px;
+  }
+  .screw.tl::before { transform: rotate(28deg); }  .screw.tl::after { transform: rotate(118deg); }
+  .screw.tr::before { transform: rotate(-12deg); } .screw.tr::after { transform: rotate(78deg); }
+  .screw.bl::before { transform: rotate(61deg); }  .screw.bl::after { transform: rotate(151deg); }
+  .screw.br::before { transform: rotate(5deg); }   .screw.br::after { transform: rotate(95deg); }
+  .screw.tl { top: 5px; left: 6px; }    .screw.tr { top: 5px; right: 6px; }
+  .screw.bl { bottom: 5px; left: 6px; } .screw.br { bottom: 5px; right: 6px; }
   .lcd {
     position: relative;
-    border-radius: 10px;
+    border-radius: 5px;
     overflow: hidden;
     background: linear-gradient(180deg, var(--lcd1), var(--lcd2));
     box-shadow:
-      inset 0 0 0 2px rgba(0,0,0,.55),
-      inset 0 7px 16px rgba(0,0,0,.35),
-      0 0 38px rgba(150,190,110,.10);
+      0 0 0 3px #0c0c0b,
+      0 0 0 4px rgba(0,0,0,.6),
+      inset 0 0 0 1px rgba(0,0,0,.5),
+      inset 0 10px 14px -4px rgba(0,0,0,.5),
+      inset 0 0 22px rgba(0,0,0,.22);
   }
   .lcd::after {
     content: "";
@@ -77,7 +166,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(158deg, rgba(255,255,255,.14), rgba(255,255,255,0) 38%),
+      linear-gradient(158deg, rgba(255,255,255,.20), rgba(255,255,255,.04) 34%, rgba(255,255,255,0) 35%),
+      linear-gradient(158deg, rgba(255,255,255,0) 62%, rgba(255,255,255,.06) 63%, rgba(255,255,255,0) 80%),
       repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px),
       repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px);
   }
@@ -100,7 +190,7 @@
   #lcd .rule { stroke: rgba(27, 35, 18, .28); stroke-width: 1.5; }
 
   /* ---- LED arc ---- */
-  .meter { width: min(100%, 420px); }
+  .meter { width: min(100%, 400px, 52vh); }
   #arc { display: block; width: 100%; height: auto; overflow: visible; }
 
   /* ---- footer ---- */
@@ -108,7 +198,8 @@
   #status {
     font-size: 15px;
     line-height: 1.4;
-    color: #838a93;
+    color: #d7c8a6;
+    text-shadow: 0 1px 0 rgba(0,0,0,.7);
     min-height: 1.4em;
     transition: opacity .4s;
     max-width: 320px;
@@ -117,12 +208,34 @@
   #status.hide { opacity: 0; }
   #status.err { color: #e0897f; }
   .ref {
-    margin-top: 8px;
-    font-size: 11px;
-    letter-spacing: .18em;
-    color: #4a5057;
+    position: relative;
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 22px 4px;
+    font: 700 10.5px/1.2 "Courier New", ui-monospace, Menlo, monospace;
+    letter-spacing: .2em;
     text-transform: uppercase;
+    color: #2b2822;
+    text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    border-radius: 3px;
+    background:
+      radial-gradient(140% 160% at 50% 50%, transparent 55%, rgba(80,60,30,.25)),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.04) 1px 2px),
+      linear-gradient(175deg, #e4e0d6, #a7a399 55%, #c9c5bb);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(0,0,0,.6), 0 3px 6px rgba(0,0,0,.5);
   }
+  .ref::before, .ref::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 6px; height: 6px;
+    margin-top: -3px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fffdf6, #9a968e 60%, #57544e);
+    box-shadow: 0 .5px 0 rgba(0,0,0,.5);
+  }
+  .ref::before { left: 7px; }
+  .ref::after { right: 7px; }
 
   /* ---- tap overlay ---- */
   #gate {
@@ -150,8 +263,12 @@
 </style>
 </head>
 <body>
+<div class="side" aria-hidden="true"></div>
+<div class="face">
+<canvas id="wear" aria-hidden="true"></canvas>
 <main class="app">
   <section class="bezel" aria-label="Tuner display">
+    <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
     <div class="lcd"><svg id="lcd" viewBox="0 0 360 300" role="img" aria-label="No note detected"></svg></div>
   </section>
 
@@ -164,6 +281,7 @@
     <div class="ref">A4 = 440 Hz</div>
   </footer>
 </main>
+</div>
 
 <div id="gate" hidden>
   <div>
@@ -377,41 +495,67 @@ const leds = [];
 const COLORS = { g: '#38ff6a', y: '#ffd21f', r: '#ff3b30' };
 function ledColor(i) { const a = Math.abs(i); return a <= 1 ? 'g' : a <= 6 ? 'y' : 'r'; }
 
+const OFF = { g: ['#2b5233', '#0b190f'], y: ['#5a4913', '#1c1505'], r: ['#5a1a16', '#1d0706'] };
+const HOT = { g: ['#f2fff4', '#7dff9b', '#1fd34c', '#0d7a2a'], y: ['#fffbe8', '#ffe46a', '#f2b90c', '#8a5d00'], r: ['#fff1ee', '#ff8a7a', '#f2231a', '#7d0a06'] };
+
 (function buildArc() {
   const defs = el('defs', {}, arc);
+  const grad = (tag, id, attrs, stops) => {
+    const g = el(tag, Object.assign({ id }, attrs), defs);
+    stops.forEach(([o, c, a]) => el('stop', { offset: o, 'stop-color': c, 'stop-opacity': a === undefined ? 1 : a }, g));
+  };
+  grad('linearGradient', 'chrome', { x1: 0, y1: 0, x2: .8, y2: 1 },
+    [[0, '#f7f1e4'], [.3, '#c2baa9'], [.55, '#6b655b'], [.8, '#d8d0c0'], [1, '#89827a']]);
+  grad('linearGradient', 'chromeIn', { x1: 0, y1: 0, x2: .7, y2: 1 },
+    [[0, '#3c3a36'], [.5, '#8f8b84'], [1, '#f1eee6']]);
   for (const k in COLORS) {
-    const gr = el('radialGradient', { id: 'glow-' + k }, defs);
-    el('stop', { offset: '0', 'stop-color': COLORS[k], 'stop-opacity': '.85' }, gr);
-    el('stop', { offset: '.45', 'stop-color': COLORS[k], 'stop-opacity': '.30' }, gr);
-    el('stop', { offset: '1', 'stop-color': COLORS[k], 'stop-opacity': '0' }, gr);
+    grad('radialGradient', 'glow-' + k, {}, [[0, COLORS[k], .75], [.4, COLORS[k], .3], [1, COLORS[k], 0]]);
+    grad('radialGradient', 'bloom-' + k, {}, [[0, '#ffffff', .9], [.3, HOT[k][1], .75], [.62, COLORS[k], .28], [1, COLORS[k], 0]]);
+    grad('radialGradient', 'off-' + k, { cx: .45, cy: .4, r: .65 }, [[0, OFF[k][0]], [1, OFF[k][1]]]);
+    grad('radialGradient', 'on-' + k, { cx: .5, cy: .48, r: .58 },
+      [[0, HOT[k][0]], [.28, HOT[k][1]], [.7, HOT[k][2]], [1, HOT[k][3]]]);
   }
+
   const R = 170, cx = 180, cy = 195, span = 64 * Math.PI / 180;
   const pos = (i) => { const a = (i / LEDS_PER_SIDE) * span; return [cx + R * Math.sin(a), cy - R * Math.cos(a)]; };
   const [x0, y0] = pos(-LEDS_PER_SIDE), [x1, y1] = pos(LEDS_PER_SIDE);
 
-  // recessed track
-  el('path', { d: `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1}`, fill: 'none', stroke: '#0e1013', 'stroke-width': 30, 'stroke-linecap': 'round' }, arc);
-  el('path', { d: `M ${x0} ${y0} A ${R} ${R} 0 0 1 ${x1} ${y1}`, fill: 'none', stroke: '#1a1d21', 'stroke-width': 30, 'stroke-linecap': 'round', opacity: .55, transform: 'translate(0 -1)' }, arc);
+  // brass centre pointer
+  el('polygon', { points: '175,3.5 185,3.5 180,11', fill: '#000', opacity: .5, transform: 'translate(0 1)' }, arc);
+  el('polygon', { points: '175,3.5 185,3.5 180,11', fill: '#c8ad6e', stroke: '#6b5426', 'stroke-width': .6 }, arc);
 
-  // centre tick
-  el('polygon', { points: '174,2 186,2 180,10', fill: '#2f6b41' }, arc);
-
+  const glows = el('g', {}, arc);   // light spill sits under every bezel
   for (let i = -LEDS_PER_SIDE; i <= LEDS_PER_SIDE; i++) {
     const [x, y] = pos(i);
     const k = ledColor(i);
-    const r = i === 0 ? 8.6 : 7.4;
-    const g = el('g', { transform: `translate(${x.toFixed(2)} ${y.toFixed(2)})` }, arc);
-    const glow = el('circle', { r: 24, fill: `url(#glow-${k})`, opacity: 0 }, g);
-    el('circle', { r: r + 2.6, fill: '#08090b', stroke: '#2b2f34', 'stroke-width': 1 }, g);
-    const body = el('circle', { r, fill: COLORS[k], opacity: .13 }, g);
-    const spec = el('circle', { r: r * .32, cx: -r * .32, cy: -r * .34, fill: '#fff', opacity: 0 }, g);
-    leds.push({ i, glow, body, spec });
+    const dome = i === 0 ? 5.9 : 5.3;      // 5 mm style dome
+    const ring = i === 0 ? 8.9 : 8.2;      // chrome holder (neighbours are 19 units apart: no overlap)
+    const at = `translate(${x.toFixed(2)} ${y.toFixed(2)})`;
+    const glow = el('circle', { r: 17, fill: `url(#glow-${k})`, opacity: 0, transform: at }, glows);
+    const g = el('g', { transform: at }, arc);
+    el('circle', { r: ring + .5, cy: 1.6, fill: '#000', opacity: .6 }, g);                       // shadow on tolex
+    el('circle', { r: ring, fill: 'url(#chrome)', stroke: 'rgba(0,0,0,.65)', 'stroke-width': .6 }, g);
+    el('circle', { r: ring - 1.5, fill: 'none', stroke: 'url(#chromeIn)', 'stroke-width': 1.1 }, g);
+    el('circle', { r: dome + .8, fill: '#050505' }, g);                                          // hole
+    el('circle', { r: dome, fill: `url(#off-${k})` }, g);
+    const lit = el('circle', { r: dome, fill: `url(#on-${k})`, opacity: 0 }, g);
+    el('circle', { r: dome, fill: 'none', stroke: 'rgba(0,0,0,.5)', 'stroke-width': .5 }, g);
+    el('ellipse', { rx: dome * .42, ry: dome * .24, cx: -dome * .28, cy: -dome * .46, fill: '#fff', opacity: .5,
+      transform: 'rotate(-28)' }, g);                                                               // lens glare
+    el('ellipse', { rx: dome * .3, ry: dome * .12, cx: dome * .12, cy: dome * .62, fill: '#fff', opacity: .12 }, g);
+    const bloom = el('circle', { r: dome + 3.2, fill: `url(#bloom-${k})`, opacity: 0, style: 'mix-blend-mode:screen' }, g);
+    leds.push({ i, glow, lit, bloom });
   }
 
-  const lf = el('text', { x: x0 - 4, y: y0 + 46, fill: '#5a6068', 'font-size': 24, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif' }, arc);
-  lf.textContent = '♭';
-  const ls = el('text', { x: x1 + 4, y: y1 + 46, fill: '#5a6068', 'font-size': 24, 'text-anchor': 'middle', 'font-family': 'system-ui, sans-serif' }, arc);
-  ls.textContent = '♯';
+  // little chrome tags with engraved flat / sharp marks
+  for (const [x, y, t] of [[x0 - 2, y0 + 30, '♭'], [x1 + 2, y1 + 30, '♯']]) {
+    el('circle', { cx: x, cy: y + 1.6, r: 11.5, fill: '#000', opacity: .55 }, arc);
+    el('circle', { cx: x, cy: y, r: 11, fill: 'url(#chrome)', stroke: 'rgba(0,0,0,.6)', 'stroke-width': .6 }, arc);
+    el('circle', { cx: x, cy: y, r: 9.4, fill: 'none', stroke: 'url(#chromeIn)', 'stroke-width': .9 }, arc);
+    const tx = el('text', { x, y: y + 6, fill: '#2c2924', 'font-size': 17, 'text-anchor': 'middle',
+      'font-family': 'Georgia, "Times New Roman", serif', 'font-weight': 700 }, arc);
+    tx.textContent = t;
+  }
 })();
 
 function renderLEDs(pos, level, tune) {
@@ -419,9 +563,9 @@ function renderLEDs(pos, level, tune) {
     let b = Math.max(0, 1 - Math.abs(pos - L.i) / 1.3);
     b = Math.pow(b, 1.15) * level;
     if (Math.abs(L.i) <= 1) b = Math.max(b, tune * level);
-    L.body.setAttribute('opacity', (0.13 + 0.87 * b).toFixed(3));
+    L.lit.setAttribute('opacity', b.toFixed(3));
     L.glow.setAttribute('opacity', (b * (L.i === 0 ? 1 : .9)).toFixed(3));
-    L.spec.setAttribute('opacity', (b * 0.45).toFixed(3));
+    L.bloom.setAttribute('opacity', (b * .85).toFixed(3));
   }
 }
 
@@ -617,7 +761,7 @@ function drawIcon(size) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const g = c.getContext('2d');
-  g.fillStyle = '#0b0c0e'; g.fillRect(0, 0, size, size);
+  g.fillStyle = '#3b281c'; g.fillRect(0, 0, size, size);
 
   const px = (v) => v * size;
   const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
@@ -639,6 +783,138 @@ function drawIcon(size) {
   g.globalAlpha = 1;
   return c;
 }
+/* ================================================================
+   Pedal finish: procedural tolex grain + scratches and edge wear
+   ================================================================ */
+function rng(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+(function makeTolex() {
+  try {
+    const N = 256, G = 30, cell = N / G, rand = rng(1958);
+    const px = [], py = [];
+    for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { px.push((i + .15 + .7 * rand()) * cell); py.push((j + .15 + .7 * rand()) * cell); }
+    const h = new Float32Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const ci = Math.floor(x / cell), cj = Math.floor(y / cell);
+      let f1 = 1e9, f2 = 1e9;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ii = (ci + di + G) % G, jj = (cj + dj + G) % G, k = jj * G + ii;
+        let dx = px[k] - x, dy = py[k] - y;
+        if (dx > N / 2) dx -= N; if (dx < -N / 2) dx += N;
+        if (dy > N / 2) dy -= N; if (dy < -N / 2) dy += N;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
+      }
+      const e = Math.min(1, (f2 - f1) / (cell * .55));
+      h[y * N + x] = e * e * (3 - 2 * e) * .85 + (rand() - .5) * .10;
+    }
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), img = g.createImageData(N, N), D = img.data;
+    const base = [59, 40, 28];
+    const L = [-.45, -.7, .55], ln = Math.hypot(...L); L[0] /= ln; L[1] /= ln; L[2] /= ln;
+    const H = [L[0], L[1], L[2] + 1], hn = Math.hypot(...H); H[0] /= hn; H[1] /= hn; H[2] /= hn;
+    const at = (x, y) => h[((y + N) % N) * N + ((x + N) % N)];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const sx = (at(x + 1, y) - at(x - 1, y)) * 1.15, sy = (at(x, y + 1) - at(x, y - 1)) * 1.15;
+      const nl = Math.hypot(sx, sy, 1), nx = -sx / nl, ny = -sy / nl, nz = 1 / nl;
+      const dif = Math.max(0, nx * L[0] + ny * L[1] + nz * L[2]);
+      const spc = Math.pow(Math.max(0, nx * H[0] + ny * H[1] + nz * H[2]), 24) * 34;
+      const shade = .58 + .5 * dif;
+      const o = (y * N + x) * 4;
+      for (let ch = 0; ch < 3; ch++) D[o + ch] = Math.max(0, Math.min(255, base[ch] * shade + spc));
+      D[o + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    document.documentElement.style.setProperty('--tolex', `url(${c.toDataURL('image/png')})`);
+  } catch (e) { /* plain colour fallback */ }
+})();
+
+function drawWear() {
+  const cv = $('wear'), face = cv.parentElement;
+  const W = face.clientWidth, Hh = face.clientHeight, dpr = Math.min(3, window.devicePixelRatio || 1);
+  if (!W || !Hh) return;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr);
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, Hh);
+  const r = rng(73);
+  const RAD = 24;
+
+  // dull, scuffed patches
+  for (let n = 0; n < 9; n++) {
+    const x = r() * W, y = r() * Hh, rad = 25 + r() * 70;
+    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+    gr.addColorStop(0, `rgba(170,140,110,${.035 + r() * .04})`); gr.addColorStop(1, 'rgba(170,140,110,0)');
+    g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+
+  // edge rub: walk round the edge, wear comes and goes, heaviest at corners
+  const per = 2 * (W + Hh);
+  const ph = [r() * 6.28, r() * 6.28, r() * 6.28];
+  const edgePt = (t) => {
+    let d = t * per;
+    if (d < W) return [d, 0, 0, 1];
+    d -= W; if (d < Hh) return [W, d, -1, 0];
+    d -= Hh; if (d < W) return [W - d, Hh, 0, -1];
+    d -= W; return [0, Hh - d, 1, 0];
+  };
+  for (let n = 0; n < 2600; n++) {
+    const t = r();
+    let [x, y, nx, ny] = edgePt(t);
+    const cornerD = Math.min(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, Hh - y), Math.hypot(W - x, Hh - y));
+    const k = .5 + .5 * Math.sin(t * 41 + ph[0]) * Math.sin(t * 17 + ph[1]) + .3 * Math.sin(t * 97 + ph[2]);
+    const corner = Math.max(0, 1 - cornerD / 70);
+    if (r() > Math.max(0, k * .7 + corner)) continue;
+    const depth = Math.pow(r(), 2.2) * (6 + 10 * corner);
+    let px2 = x + nx * (depth + 1), py2 = y + ny * (depth + 1);
+    // keep inside the rounded corners
+    for (const [cx0, cy0] of [[RAD, RAD], [W - RAD, RAD], [RAD, Hh - RAD], [W - RAD, Hh - RAD]]) {
+      const inX = (cx0 < W / 2) ? px2 < cx0 : px2 > cx0, inY = (cy0 < Hh / 2) ? py2 < cy0 : py2 > cy0;
+      if (inX && inY) { const dx = px2 - cx0, dy = py2 - cy0, d = Math.hypot(dx, dy) || 1, m = Math.min(d, RAD - 1 - depth * .6);
+        px2 = cx0 + dx / d * m; py2 = cy0 + dy / d * m; }
+    }
+    const through = depth < 2.2 && r() < .18 + corner * .3;
+    g.fillStyle = through ? `rgba(214,190,150,${.10 + r() * .16})` : `rgba(160,128,98,${.04 + r() * .08})`;
+    g.beginPath(); g.arc(px2, py2, .5 + r() * (through ? 1.6 : 3.2), 0, 6.283); g.fill();
+  }
+
+  // scratches: a pale groove with a dark lip, some in parallel groups
+  const scratch = (x, y, ang, len, a, w) => {
+    const bend = (r() - .5) * len * .25;
+    const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+    const mx = (x + ex) / 2 - Math.sin(ang) * bend, my = (y + ey) / 2 + Math.cos(ang) * bend;
+    g.lineCap = 'round';
+    g.strokeStyle = `rgba(0,0,0,${a * 1.6})`; g.lineWidth = w * .8;
+    g.beginPath(); g.moveTo(x + .6, y + .7); g.quadraticCurveTo(mx + .6, my + .7, ex + .6, ey + .7); g.stroke();
+    const gr = g.createLinearGradient(x, y, ex, ey);
+    gr.addColorStop(0, 'rgba(240,222,196,0)'); gr.addColorStop(.18, `rgba(240,222,196,${a})`);
+    gr.addColorStop(.8, `rgba(240,222,196,${a})`); gr.addColorStop(1, 'rgba(240,222,196,0)');
+    g.strokeStyle = gr; g.lineWidth = w;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+  };
+  for (let n = 0; n < 26; n++) {
+    const x = r() * W, y = r() * Hh, ang = r() * 6.283, len = 12 + Math.pow(r(), 1.6) * 150;
+    const a = .07 + r() * .13, w = .5 + r() * .8;
+    const group = r() < .3 ? 2 + Math.floor(r() * 3) : 1;
+    for (let q = 0; q < group; q++) {
+      const off = q * (1.6 + r() * 2.4);
+      scratch(x - Math.sin(ang) * off, y + Math.cos(ang) * off, ang + (r() - .5) * .05, len * (.6 + r() * .4), a * (.6 + r() * .5), w);
+    }
+  }
+  // a few short nicks
+  for (let n = 0; n < 14; n++) scratch(r() * W, r() * Hh, r() * 6.283, 2 + r() * 6, .14 + r() * .14, .9 + r() * .7);
+
+  // age: slightly darker, grubbier towards the edges
+  const v = g.createRadialGradient(W / 2, Hh * .45, Math.min(W, Hh) * .3, W / 2, Hh * .45, Math.max(W, Hh) * .75);
+  v.addColorStop(0, 'rgba(10,6,3,0)'); v.addColorStop(1, 'rgba(10,6,3,.32)');
+  g.fillStyle = v; g.fillRect(0, 0, W, Hh);
+}
+let wearTimer = 0;
+window.addEventListener('resize', () => { clearTimeout(wearTimer); wearTimer = setTimeout(drawWear, 150); });
+drawWear();
+
 (function setupInstallBits() {
   try {
     $('touchicon').href = drawIcon(180).toDataURL('image/png');
@@ -647,7 +923,7 @@ function drawIcon(size) {
       name: 'Guitar Tuner', short_name: 'Tuner',
       start_url: location.href.split('#')[0], scope: location.href.split('#')[0].replace(/[^/]*$/, ''),
       display: 'standalone', orientation: 'portrait',
-      background_color: '#0b0c0e', theme_color: '#0b0c0e',
+      background_color: '#000000', theme_color: '#000000',
       icons: [
         { src: drawIcon(192).toDataURL('image/png'), sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
         { src: drawIcon(512).toDataURL('image/png'), sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
