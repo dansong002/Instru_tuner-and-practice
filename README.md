@@ -22,7 +22,11 @@ npm run preview    # serve the build
 
 The tuner needs microphone access, which browsers only allow on `https://` or `localhost`.
 
-To install on a phone, deploy `dist/` to any static host with HTTPS (e.g. GitHub Pages), open it, and choose **Add to Home Screen**.
+## Hosting (GitHub Pages)
+
+`.github/workflows/pages.yml` tests, builds and deploys the app on every push to `main`, or on demand from the Actions tab. One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+The site is served at `https://dansong002.github.io/Instru_tuner-and-practice/`. Open it on your phone and choose **Add to Home Screen** (iOS: Share → Add to Home Screen) to install it. It then works offline.
 
 ## How the timing works
 
