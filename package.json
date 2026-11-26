@@ -1,0 +1,24 @@
+{
+  "name": "instru-tuner-and-practice",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Tuner, metronome, drum rudiments and groove practice — an installable web app.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "pitchy": "^4.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.4.0",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.2"
+  }
+}
