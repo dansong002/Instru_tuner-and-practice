@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#14161a"/>
+  <!-- snare drum -->
+  <ellipse cx="256" cy="300" rx="150" ry="44" fill="#ff8a3d"/>
+  <path d="M106 300v70c0 24 67 44 150 44s150-20 150-44v-70" fill="#c9541a"/>
+  <ellipse cx="256" cy="300" rx="150" ry="44" fill="none" stroke="#ffd2b0" stroke-width="10"/>
+  <!-- sticks -->
+  <path d="M170 110l90 175" stroke="#f3e6d6" stroke-width="18" stroke-linecap="round"/>
+  <path d="M342 110l-90 175" stroke="#f3e6d6" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="170" cy="110" r="14" fill="#f3e6d6"/>
+  <circle cx="342" cy="110" r="14" fill="#f3e6d6"/>
+</svg>
